@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thi tiếng Trung – Nhập từ Excel (Random + Enter)</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    .question {
+      font-size: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    input[type=text] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Thi tiếng Trung</h1>
+
+  <div style="margin-bottom:15px">
+    <b>Chọn file Excel (A: Việt, B: Trung):</b><br>
+    <input type="file" id="excelFile" accept=".xlsx,.xls">
+  </div>
+
+  <div class="question" id="question">Chưa có dữ liệu</div>
+
+  <input
+    type="text"
+    id="answer"
+    placeholder="Nhập đáp án tiếng Trung..."
+    onkeydown="handleEnter(event)"
+  >
+
+  <button onclick="checkAnswer()">Kiểm tra</button>
+  <button onclick="skipQuestion()">Bỏ qua</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+  let questions = [];
+  let index = 0;
+
+  document.getElementById("excelFile").addEventListener("change", handleFile);
+
+  // ===== RANDOM (Fisher–Yates) =====
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      questions = rows
+        .filter(r => r[0] && r[1])
+        .map(r => ({
+          vi: String(r[0]),
+          zh: String(r[1])
+        }));
+
+      shuffle(questions); // 🔀 RANDOM câu hỏi
+
+      index = 0;
+      loadQuestion();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function loadQuestion() {
+    if (questions.length === 0) {
+      document.getElementById("question").innerText = "Chưa có dữ liệu";
+      return;
+    }
+    document.getElementById("question").innerText =
+      "Dịch sang tiếng Trung: " + questions[index].vi;
+    document.getElementById("answer").value = "";
+    document.getElementById("result").innerText = "";
+    document.getElementById("answer").focus();
+  }
+
+  function normalize(text) {
+    return text.replace(/\s+/g, "").trim();
+  }
+
+  function checkAnswer() {
+    if (questions.length === 0) return;
+
+    const userAnswer = normalize(document.getElementById("answer").value);
+    const correctAnswer = normalize(questions[index].zh);
+    const result = document.getElementById("result");
+
+    if (!userAnswer) {
+      result.innerText = "⚠️ Vui lòng nhập đáp án";
+      result.style.color = "orange";
+      return;
+    }
+
+    if (userAnswer === correctAnswer) {
+      result.innerText = "✅ ĐỈNH CHÓP";
+      result.style.color = "green";
+      setTimeout(nextQuestion, 600);
+    } else {
+      result.innerText = "❌ DỐT – nhập lại";
+      result.style.color = "red";
+    }
+  }
+
+  function skipQuestion() {
+    nextQuestion();
+  }
+
+  function nextQuestion() {
+    index++;
+    if (index >= questions.length) {
+      document.getElementById("question").innerText = "🎉 Đã hết câu hỏi";
+      document.getElementById("answer").disabled = true;
+      return;
+    }
+    loadQuestion();
+  }
+
+  function handleEnter(event) {
+    if (event.key === "Enter") {
+      checkAnswer();
+    }
+  }
+</script>
+
+</body>
+</html>
