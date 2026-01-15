@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Luyện từ vựng tiếng Trung</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 520px;
+  margin: 40px auto;
+}
+h2 {
+  margin-bottom: 12px;
+}
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 18px;
+}
+button {
+  padding: 8px 16px;
+  font-size: 16px;
+  margin-top: 10px;
+}
+#result {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+.correct { color: green; }
+.wrong { color: red; }
+</style>
+</head>
+
+<body>
+
+<h2 id="question">Đang tải dữ liệu…</h2>
+
+<input
+  id="answer"
+  placeholder="Nhập tiếng Trung rồi nhấn Enter"
+  autocomplete="off"
+  autofocus
+>
+
+<div>
+  <button onclick="skip()">Bỏ qua</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+let vocab = [];
+let current = null;
+
+// =====================
+// LOAD CSV UTF-8
+// =====================
+fetch("vocab.csv")
+  .then(r => r.text())
+  .then(text => {
+    vocab = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line =>
+        line &&
+        line.includes(",") &&          // phải có 2 cột
+        /[^\x00-\x7F]/.test(line)      // có Unicode (loại dòng tiếng Anh test)
+      )
+      .map(line => {
+        const [vi, zh] = line.split(",");
+        return { vi: vi.trim(), zh: zh.trim() };
+      });
+
+    if (vocab.length === 0) {
+      throw "CSV không có dữ liệu hợp lệ";
+    }
+
+    nextWord();
+  })
+  .catch(err => {
+    document.getElementById("question").innerText =
+      "❌ Lỗi đọc vocab.csv";
+    console.error(err);
+  });
+
+// =====================
+// RANDOM
+// ================
