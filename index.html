@@ -62,14 +62,16 @@ fetch("vocab.csv")
   .then(text => {
     vocab = text
       .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line =>
-        line &&
-        line.includes(",") &&          // phải có 2 cột
-        /[^\x00-\x7F]/.test(line)      // có Unicode (loại dòng tiếng Anh test)
+      .map(l => l.trim())
+      .filter(l =>
+        l &&
+        l.includes(",") &&
+        !l.includes("<img") &&
+        !l.includes("base64") &&
+        !l.includes("<")
       )
-      .map(line => {
-        const [vi, zh] = line.split(",");
+      .map(l => {
+        const [vi, zh] = l.split(",");
         return { vi: vi.trim(), zh: zh.trim() };
       });
 
@@ -78,6 +80,7 @@ fetch("vocab.csv")
     }
 
     nextWord();
+  });
   })
   .catch(err => {
     document.getElementById("question").innerText =
